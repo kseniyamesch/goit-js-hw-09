@@ -1,53 +1,77 @@
-import flatpickr from "flatpickr";
-import "flatpickr/dist/flatpickr.min.css";
 
-const refs = {
-    inputRef: document.querySelector('#datatime-picker'),
-    startBtnRef: document.querySelector('[data-start]'),
-    daysCountRef: document.querySelector('[data-days]'),
-    hoursCountRef: document.querySelector('[data-hours]'),
-    minutesCountRef: document.querySelector('[data-minutes]'),
-    secondsCountRef: document.querySelector('[data-seconds]')
-}
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
 const options = {
-    
-    altInput: true,
-    
-    time_24hr: true,
-    defaultDate: new Date(),
-    minuteIncrement: 1,
-    onClose(selectedDates) {
-      console.log(selectedDates[0]);
-    },
-  };
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(),
+  minuteIncrement: 1,
+  onClose(selectedDates) {
+    closeFunc(selectedDates[0]);
+  },
+};
 
-  function convertMs(ms) {
-    // Number of milliseconds per unit of time
-    const second = 1000;
-    const minute = second * 60;
-    const hour = minute * 60;
-    const day = hour * 24;
-  
-    // Remaining days
-    const days = Math.floor(ms / day);
-    // Remaining hours
-    const hours = Math.floor((ms % day) / hour);
-    // Remaining minutes
-    const minutes = Math.floor(((ms % day) % hour) / minute);
-    // Remaining seconds
-    const seconds = Math.floor((((ms % day) % hour) % minute) / second);
-  
-    return { days, hours, minutes, seconds };
+const refs = {
+  startButton: document.querySelector('[data-start]'),
+  inputEl: document.querySelector('#datetime-picker'),
+  days: document.querySelector('[data-days]'),
+  hours: document.querySelector('[data-hours]'),
+  minutes: document.querySelector('[data-minutes]'),
+  seconds: document.querySelector('[data-seconds]'),
+};
+const isDisabled = true;
+let userDate = Date.now();
+
+refs.startButton.disabled = isDisabled;
+refs.startButton.addEventListener('click', onStartClick);
+
+const fp = flatpickr(refs.inputEl, options);
+
+function closeFunc(date) {
+  if (Date.now() > date) {
+    Notify.failure('Please choose a date in the future');
+  } else {
+    refs.startButton.disabled = !isDisabled;
+    userDate = date;
   }
-  
-const fp = flatpickr("#datetime-picker", {options});
-fp.config.onChange.push(function onClose (selectedDates, dateStr, instance) { 
-    console.log(selectedDates),
-    console.log(dateStr),
-    console.log(instance)
-} );
-refs.startBtnRef.setAttribute('disabled', true)
+}
 
+function onStartClick() {
+  refs.startButton.disabled = isDisabled;
+  fp.destroy();
+  refs.inputEl.disabled = isDisabled;
+  countdownStart();
+}
 
+function countdownStart() {
+  setInterval(() => {
+    const restTime = convertMs( userDate - Date.now());
+    addCount(restTime);
+  }, 1000);
+}
 
+function convertMs(ms) {
+  const second = 1000;
+  const minute = second * 60;
+  const hour = minute * 60;
+  const day = hour * 24;
+  const days = Math.floor(ms / day);
+  const hours = Math.floor((ms % day) / hour);
+  const minutes = Math.floor(((ms % day) % hour) / minute);
+  const seconds = Math.floor((((ms % day) % hour) % minute) / second);
+  return { days, hours, minutes, seconds };
+};
+
+function addCount({ days, hours, minutes, seconds }) {
+  refs.days.textContent = addLeadingZero(days);
+  refs.hours.textContent = addLeadingZero(hours);
+  refs.minutes.textContent = addLeadingZero(minutes);
+  refs.seconds.textContent = addLeadingZero(seconds);
+};
+
+function addLeadingZero(value) {
+  return String(value).padStart(2, '0');
+}
